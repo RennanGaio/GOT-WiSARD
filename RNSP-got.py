@@ -44,9 +44,10 @@ def criaListaTags (listaFrasesBoa):
 		listaTagsBoa.append([str(par[0]),str(par[1])])
 	return listaTagsBoa
 
-def GeraVetorDaRNSP(matrizFull, nomeDoArquivoTre, nomeDoArquivoTes):
+def GeraVetorDaRNSP(matrizFull, MatrizTreinoIndex):
 	listaPalavrasUnicas=[]
 	matrizDeEntrada=[]
+	balanceada=False
 
 	#constroi a wordlist do texto (usando o primitivo das palavras)
 	for frase in matrizFull:
@@ -54,7 +55,7 @@ def GeraVetorDaRNSP(matrizFull, nomeDoArquivoTre, nomeDoArquivoTes):
 			if palavra not in listaPalavrasUnicas:
 				listaPalavrasUnicas.append(palavra)
 
-	#print listaPalavrasUnicas
+	#print len(listaPalavrasUnicas)
 
     #constroi a matriz de entrada da RNSP (binaria)
 	for frase in matrizFull:
@@ -68,35 +69,34 @@ def GeraVetorDaRNSP(matrizFull, nomeDoArquivoTre, nomeDoArquivoTes):
 	# for frase in matrizDeEntrada:
 	# 	print frase
 
-###TENHO Q VER COMO ESCREVER A MATRIZ EM ARQUIVO E DONEEEEE
-    #entrar com esses dados na RNSP em C++ -> como eu devo montar o arquivo para darmos de entrada?
-    #90% sera usada para treino
-    #10% sera usada para teste
-	qtdFrases=len(matrizDeEntrada)
-	#print qtdFrases
+	if not balanceada:
+	    #90% sera usada para treino
+	    #10% sera usada para teste
+		qtdFrases=len(matrizDeEntrada)
+		#print qtdFrases
 
-	limite=int(0.9*qtdFrases)
-	#print limite
+		limite=int(0.9*qtdFrases)
+		#print limite
 
-	cont=0
-	while cont<limite:
-		print matrizDeEntrada[cont]
-		cont+=1
+		cont=0
+		matrizDeTreino=[]
+		matrizDeTeste=[]
+		while cont<limite:
+			matrizDeTreino.append(matrizDeEntrada[cont])
+			cont+=1
+		print matrizDeTreino
+		while cont<qtdFrases:
+		 	matrizDeTeste.append(matrizDeEntrada[cont])
+		 	cont+=1
+		print matrizDeTeste
+		#print cont
+	else:
+		matrizDeTreino=[]
+		matrizDeTeste=[]
+		for index in MatrizTreinoIndex:
+			matrizDeTreino.append(matrizDeEntrada[index])
+		print matrizDeTreino
 
-    # #gera arquivo com listas binarias dos dados de treino (falta criar o arquivo com as labels)
-	# treino=open(nomeDoArquivoTre,'w')
-	# cont=0
-	# while cont<limite:
-	# 	treino.write(matrizDeEntrada[cont])
-	# 	cont+=1
-	# treino.close()
-	#
-    # #gera arquivo com listas binarias dos dados de teste (falta criar o arquivo com as labels)
-	# teste=open(nomeDoArquivoTes,'w')
-	# while cont<qtdFrases:
-	# 	teste.write(matrizDeEntrada[cont])
-	# 	cont+=1
-	# teste.close()
 
 def GeraLabels(capCompleto, frasesSelecionadas):
 	vetorLabels=[]
@@ -106,6 +106,44 @@ def GeraLabels(capCompleto, frasesSelecionadas):
 		else:
 			vetorLabels.append('0')
 	#print vetorLabels
+
+	qtdFrases=len(vetorLabels)
+	#print qtdFrases
+
+	limite=int(0.9*qtdFrases)
+	#print limite
+
+	cont=0
+
+	labelsDeTreino=[]
+	labelsDeTeste=[]
+	while cont<limite:
+		labelsDeTreino.append(vetorLabels[cont])
+		cont+=1
+
+	#print labelsDeTreino
+	while cont<qtdFrases:
+	 	labelsDeTeste.append(vetorLabels[cont])
+	 	cont+=1
+	#print labelsDeTeste
+
+def GeraMatrizTesteMelhorada(capCompleto, frasesSelecionadas):
+	vetorLabels=[]
+	vetorIndexMatriz=[]
+	cont1=0
+	cont0=0
+
+	for frase in capCompleto:
+		if frase in frasesSelecionadas and cont1<100:
+			vetorLabels.append('1')
+			vetorIndexMatriz.append(capCompleto.index(frase))
+			cont1+=1
+
+		elif cont0<100:
+			vetorLabels.append('0')
+			vetorIndexMatriz.append(capCompleto.index(frase))
+			cont0+=1
+	return vetorIndexMatriz, vetorLabels
 
 
 
@@ -190,6 +228,10 @@ while cont < len(listaTagsBoa):
 		fraseTemp=[]
 	cont+=1
 
+# for frase in matrizDeFrases:
+# 	for p in frase:
+# 		print p[0],
+# 	print
 
 #GERA O ARQUIVO DE LABELS
 frasesSelecionadas = open('dados/FrasesSelecionadas.txt').read()
@@ -213,6 +255,10 @@ vecT=todasAsFrases.split('\n')
 del vecT[-1]
 
 GeraLabels(vecT,vec)
+
+novaMatrizTreinoIndex, novaMatrizLabels=GeraMatrizTesteMelhorada(vecT,vec)
+
+#print novaMatrizLabels
 
 #steaming e retirada de stopwords
 stemmer = SnowballStemmer("english")
@@ -239,10 +285,10 @@ for frase in matrizDeFrases:
 
 
 ###DEBUGER###
-# for frase in matrizDeFrasesFinalPalavra:
+# for frase in matrizDeFrasesFinalTag:
 # 	for elemento in frase:
 # 		print elemento,
 # 	print
 
-GeraVetorDaRNSP(matrizDeFrasesFinalPalavra, '/home/rgaio/Desktop/treino-palavras', '/home/rgaio/Desktop/teste-palavras')
-GeraVetorDaRNSP(matrizDeFrasesFinalTag, '/home/rgaio/Desktop/treino-tags', '/home/rgaio/Desktop/teste-tags')
+GeraVetorDaRNSP(matrizDeFrasesFinalPalavra, novaMatrizTreinoIndex)
+GeraVetorDaRNSP(matrizDeFrasesFinalTag, novaMatrizTreinoIndex)
